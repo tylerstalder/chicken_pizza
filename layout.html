@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>nTunes!!!</title>
+  <link rel="stylesheet" href="/css/Aristo/jquery-ui-1.8rc3.custom.css" type="text/css" media="screen" title="no title" charset="utf-8">
+  <link rel="stylesheet/less" href="/css/ntunes.less" type="text/css" />
+</head>
+<body>
+  <div id="header">
+  <h1>Welcome to nTunes</h1>
+  <div id="controls">
+    <ul>
+      <li></li>
+    </ul>    
+    <a href="#" id="prevSong">Previous Song</a>
+    <a href="#" id="playPause">Play/Pause</a>
+    <a href="#" id="nextSong">Next Song</a>
+  </div>
+
+  <div id="volume">&nbsp;</div>
+  
+  <div id="scrubber">
+    
+  </div>
+  
+</div>
+
+<div id="wrap">
+  <div id="library">
+    <h2>Library</h2>
+    <ul>
+      <li>Music</li>
+    </ul>
+    <h2>Playlists</h2>
+    <ul id="playlists">
+      <li>Rockin the 80s</li>
+      <li>High School</li>
+      <li>Favs</li>
+      <li>Workout Music</li>
+      <li>ZOMG</li>
+      <li>Road Trippin</li>
+      <li>Blues</li>
+    </ul>
+  </div>
+  
+  <div id="browser">
+    <div id="genres">
+      <h2>Genres</h2>
+      <ul>
+        <li>Loading Catalog...</li>
+      </ul>      
+    </div> <!-- /genres -->
+    <div id="artists">
+      <h2>Artists</h2>
+      <ul>
+        <li>Loading Catalog...</li> 
+      </ul>            
+    </div> <!-- /artists -->
+    <div id="albums">        
+      <h2>Albums</h2>
+      <ul>
+        <li>Loading Catalog...</li>  
+      </ul>
+    </div> <!-- /albums -->
+    <div class="clear">&nbsp;</div>             
+  </div> <!-- /browser -->
+  
+  <div id="songCanvas">    
+    <a href="#" title="Loading...">Loading Catalog...</a>
+  </div>
+</div>
+  <script src="/js/jquery-1.4.2.min.js" type="text/javascript" charset="utf-8"></script>
+  <script src="/js/jquery-ui-1.8.4.custom.min.js" type="text/javascript" charset="utf-8"></script>
+  <script src="/js/underscore.js" type="text/javascript" charset="utf-8"></script>
+  <script src="/js/less-1.0.35.js" type="text/javascript" charset="utf-8"></script>  
+  <script type="text/javascript" charset="utf-8">
+    less.env = "development";
+    less.watch();
+    
+    $("#library").resizable({ 
+      handles: 'e',
+      resize: function(event, ui) {
+        var w = $(window).width() - $('#library').outerWidth();
+        $('#browser').width(w);
+        $('#songCanvas').width(w);
+      }
+    });
+    
+    $('#browser')
+      .width($(window).width() - $('#library').outerWidth())
+      .resizable({ handles: 's', resize: function(e, ui) {
+        $('#songCanvas')
+          .height($(window).height() - $('#header').outerHeight() - $('#browser').outerHeight());
+        $('#browser ul')
+          .height($('#browser').height() - $('#browser h2').outerHeight() - $('#browser .ui-resizable-s').outerHeight());
+      }});
+    
+    $('#songCanvas')
+      .width($(window).width() - $('#library').outerWidth())
+      .height($(window).height() - $('#header').outerHeight() - $('#browser').outerHeight());
+      
+    $('#browser ul')
+      .height($('#browser').height() - $('#browser h2').outerHeight() - $('#browser .ui-resizable-s').outerHeight());
+      
+    $(window).bind('resize', function() {
+      $('#browser')
+        .width($(window).width() - $('#library').outerWidth());
+      $('#songCanvas')
+        .width($(window).width() - $('#library').outerWidth())
+        .height($(window).height() - $('#header').outerHeight() - $('#browser').outerHeight());
+    });
+    
+    $('#playlists li')
+      .bind('dblclick', function(e) {
+        $(this).attr('contenteditable', 'true');
+        $(this).focus();
+      })
+      .bind('blur', function(e) {
+        $(this).attr('contenteditable', 'false');
+      });
+    
+    
+    $('#volume').slider({
+      min: 0,
+      max: 10,
+      value: 7,
+      animate: true,
+      slide: function(event, ui) {
+        if (ui.value === 10) {
+          var num = 1; 
+        } else {
+          var num = '.' + ui.value
+        }
+        document.getElementById('playa').volume = num;
+      }
+    });
+    
+    $('#controls a').bind('click', function(e) {
+      e.preventDefault();
+    });
+      
+  </script>
+  
+  <script src="/js/ntunes.js" type="text/javascript" charset="utf-8"></script>
+</body>
+</html>

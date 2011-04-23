@@ -1,245 +1,12 @@
 <html>
 	<head>
 		<title>the title</title>
-		<style type="text/css">
-			.already_played{
-				color: grey;
-			}
-			.current_song{
-				background-color:LightBlue;
-			}
-			.tagbox{
-				float:left;
-			}
-			/*this doesn't work*/
-			.status, .queue{
-				float: left;
-			}
-			.status{
-				width: 20%;
-			}
-			.queue{
-				width: 2px;
-			}
-		</style>
-		<script type="text/javascript" src="/valums-file-uploader/client/fileuploader.js"></script>
+	  <script type="text/javascript" src="./valums-file-uploader/client/fileuploader.js"></script>
+    <script type="text/javascript" src="./js/chicken-pizza.js"></script>
 		<link type="text/css" href="/valums-file-uploader/client/fileuploader.css" media="screen" rel="stylesheet"/>
-		<script type="text/javascript">
-			//global vars
-			the_status={queue_version: -1}
-			
-			//util functions
-			function ajax(url,method,postdata,f){
-				var xhr = new XMLHttpRequest();
-				xhr.onreadystatechange=function(){
-					if (xhr.readyState==4 && xhr.status==200){
-						f(JSON.parse(xhr.responseText));
-					}
-				}
-				xhr.open(method,url,true);
-				xhr.send(postdata);
-			}
-			function tag_to_id(tag){
-				return tag.toLowerCase()+"_selector"
-			}
-			function obj_to_query_string(obj,base_string){
-				if (typeof(obj)=="object"){
-					var res=[]
-					if (typeof(obj.length)=="undefined"){ // not an array
-						if (key_count(obj)==0)
-							return base_string;
-						for (var i in obj)
-							res.push(obj_to_query_string(obj[i],base_string+"["+i+"]"));
-					}
-					else{ //an array
-						if (obj.length==0)
-							return base_string;
-						for (var i = 0; i<obj.length;i++)
-							res.push(obj_to_query_string(obj[i],base_string+"[]")); //same line as above ;)
-					}
-					return res.join("&");
-				}
-				else{
-					return base_string+"="+encodeURIComponent(obj)
-				}
-			}
-			function key_count(obj){
-				count=0;
-				for (i in obj) {if (obj.hasOwnProperty(i)) count++;}
-				return count;
-			}
-			function array_include(arr,val){
-				for (var i=0; i<arr.length;i++)
-					if (arr[i]==val)
-						return true;
-				return false;
-			}
-			
-			//meat & potatoes
-			function update_view(){
-				filters=collect_filters();
-				var url="/search_and_filter?"+obj_to_query_string(filters,"filters")+"&query="+document.getElementById("search_box").value
-				
-				ajax(url,"GET",null,function(response){
-					update_selectors(response,filters);
-				})
-			}
-			function update_selectors(data,filters){
-				all_data=data
-				for (tag in data){
-					var e=document.getElementById(tag_to_id(tag));
-					//e.options.length=0; <-- this seems to break things
-					e.innerHTML=""
-					for (var i=0;i<data[tag].length;i++){
-						//possibly factor this out later...
-						if (tag=="Tracks"){
-							var fname=data[tag][i]["file"]
-							var title=data[tag][i]["Title"] || "(Unknown Title, file="+fname+")"
-							e.appendChild(new Option(title,fname))
-						}
-						else{
-							var val=data[tag][i];
-							var inc=false;
-							if (typeof(filters[tag])!="undefined"){
-								inc=array_include(filters[tag],val||"");
-							}
-							if (val)
-								var o=new Option(val,val,inc,inc);
-							else
-								var o=new Option("(Unknown "+tag+")","",inc,inc)
-							e.appendChild(o);
-							if (inc)
-								o.selected="true"
-						}
-					}
-				}
-			}
-			function clear_selector(tag){
-				var e=document.getElementById(tag_to_id(tag));
-				for (var i=0; i<e.options.length; i++)
-					e.options[i].selected=null;
-				update_view();
-			}
-			function collect_filters(){
-				var all={};
-				var tags=["Genre","Artist","Album"]
-				for (var i in tags){
-					var tag=tags[i]
-					all[tag]=[];
-					var e=document.getElementById(tag_to_id(tag));
-					for (var i=0; i<e.options.length; i++)
-						if(e.options[i].selected)
-							all[tag].push(e.options[i].value);
-					//if (all[tag].length==0)
-					//	delete all[tag];
-				}
-				return all;
-			}
-			function update_status(){
-				ajax("/status","GET",null,function(data){
-					var ul=document.getElementById("status_list")
-					ul.innerHTML=""
-					for (var i in data){
-						var li=document.createElement("li")
-						li.textContent=i+": "+data[i]
-						ul.appendChild(li)
-					}
-					if (the_status.queue_version!=data.queue_version || the_status.song!=data.song ||the_status.songid!=data.songid){
-						update_queue(data.song);
-					}
-					document.getElementById("vol").value=data.volume;
-					
-					//now that comparisons are done, use this
-					the_status=data;
-				});
-			}
-			function update_queue(song_i){
-				ajax("/queue/list","GET",null,function(data){
-					var ul = document.getElementById("queue_list");
-					ul.innerHTML="";
-					for (var i=0; i<data.length; i++){
-						var track=data[i];
-						
-						var li= document.createElement("li");
-						var minus = document.createElement("a");
-						minus.onclick=function(){return simple_control("/queue/delete/"+this.parentElement.i,"delete");}
-						li.ondblclick=function(){return simple_control("/playback/play?pos="+this.i,"put");}
-						ul.appendChild(li);
-						li.appendChild(minus);
-						minus.appendChild(document.createTextNode("(-)"));
-						minus.setAttribute("href","#");
-						var playNext=document.createElement("a");
-						
-						playNext.onclick=function(){
-							var cur = parseInt(the_status.song);
-							var target = (this.parentElement.i <=cur) ? cur : cur+1;
-							return simple_control("/queue/move/"+this.parentElement.track_id+"?pos="+target,"put");}
-						li.appendChild(playNext);
-						playNext.appendChild(document.createTextNode("(play next)"));
-						playNext.setAttribute("href","#");
-						li.appendChild(document.createTextNode("  ["+(track["Requester"]||"Unknown Requester")+"]: "+(track["Artist"]||"(Unknown Artist)")+" - "+(track["Title"]||"(Unknown Title, file="+track["file"]+")")));
-						li.i=i
-						li.track_id=track["Id"]
-						if (i<song_i)
-							li.className="already_played"
-						if (i==song_i)
-							li.className="current_song"
-						
-					}
-					
-				});
-			}
-			function simple_control(url,method){
-				ajax(url,method,null,function(d){update_status();});
-				return false;
-			}
-			function add_tracks(){
-				
-				var e=document.getElementById("tracks_selector")
-				for (var i=0; i<e.options.length; i++){
-					if (e.options[i].selected){
-						ajax("/queue/add?filename="+encodeURIComponent(e.options[i].value),"post",null,function(d){})
-					}
-				}
-				update_status();
-			}
-			timeout_id=null
-			function debounce_search(){
-				if (timeout_id)
-					clearTimeout(timeout_id)
-				timeout_id=setTimeout(function(){
-					update_view();
-				},250);
-			}
-			function do_search(query){
-				alert("do_search depreciating, not meant to be called")
-				ajax("/search/"+encodeURIComponent(query)+"?"+obj_to_query_string(["Genre","Artist","Album"],"tags"),"GET",null,function(d){
-					update_selectors(d,{});
-				});
-			}
-			window.onload=function(){
-				var arr=document.getElementsByClassName("filter_selector");
-				for (var i in arr){
-					arr[i].onchange=update_view;
-				}
-				update_view();
-				update_status();
-				setInterval(update_status,10*1000)
-				
-				
-				var uploader = new qq.FileUploader({
-					element: document.getElementById('file-uploader'),
-					action: '/upload_file',
-					onComplete:function(){ajax('/reload_db','put',null,function(d){update_view();});}
-				});
-				document.getElementById('qq-upload-button').textContent="Upload Songs"
-			}
-		</script>
-			
 	</head>	
-<body>
-<body>
-	<a href="#" onclick="if (confirm('are you sure?')){simple_control('/reload_db','put');}; return false">force database reload</a> (use if uploaded files don't show up. warning: slow)
+  <body>
+	<a href="#" id="force_db">force database reload</a> (use if uploaded files don't show up. warning: slow)
 	<div id="file-uploader">
 		<noscript>
 			<p>Please enable JavaScript to use file uploader.</p>
@@ -248,37 +15,36 @@
 	</div>
 	<div id="controls">
 		<h2>Controls</h2>
-		<!--<a href="#" onclick="ajax('/reload_db','put',null,function(d){update_view();});">reload</a>-->
-		<a href="#" onclick="return simple_control('/queue/clear','put');">clear queue</a>
-		<a href="#" onclick="return simple_control('/playback/play','put');">play from beginning</a>
-		<a href="#" onclick="return simple_control('/playback/previous','post');">previous</a>
-		<a href="#" onclick="return simple_control('/playback/next','post');">next</a>
-		<label for="vol">Volume</label><input id="vol" type="text" onchange="return simple_control('/playback/setvol?vol='+this.value,'put');"/>
+		<a href="#" id="clear_queue">clear queue</a>
+    <a href="#" id="play_from_beginning">play from beginning</a>
+		<a href="#" id="previous">previous</a>
+		<a href="#" id="next">next</a>
+		<label for="vol">Volume</label><input id="vol" type="text"/>
 	</div>
 		<div id="queue">
 		<h2>queue</h2>
 		<ul id="queue_list"></ul>
 	</div>
 	<div class="tagbox">
-		<h3  for="genre_selector">Genre<a href="#" onclick="clear_selector('genre'); false">(clear)</a></h3>
+		<h3  for="genre_selector">Genre<a href="#" id="clear_genre">(clear)</a></h3>
 		
 		<select multiple="true" class="filter_selector" id="genre_selector"></select>
 	</div>
 	<div class="tagbox">
-		<h3  for="artist_selector">Artist<a href="#" onclick="clear_selector('artist'); false">(clear)</a></h3>
+		<h3  for="artist_selector">Artist<a href="#" id="clear_artist">(clear)</a></h3>
 		
 		<select multiple="true" class="filter_selector" id="artist_selector"></select>
 	</div>
 	<div class="tagbox">
-		<h3  for="album_selector">Album<a href="#" onclick="clear_selector('album'); false">(clear)</a></h3>
+		<h3  for="album_selector">Album<a href="#" id="clear_album">(clear)</a></h3>
 		
-		<select multiple="true" class="filter_selector" id="album_selector" ondblclick="add_tracks();"></select>
+		<select multiple="true" class="filter_selector" id="album_selector"></select>
 	</div>
-	<div class="tagbox"><h3  for="tracks_selector">Tracks</h3><select multiple="true" id="tracks_selector" ondblclick="add_tracks()"></select></div>
+	<div class="tagbox"><h3  for="tracks_selector">Tracks</h3><select multiple="true" id="tracks_selector"></select></div>
 	<div style="clear: both"></div>
-	<a href="#" onclick="add_tracks()">Add Selected Tracks</a>
-	<label for="search_box">search</label><input id="search_box" type="text" onkeydown="debounce_search();"/>
-	<a href="#" onclick="document.getElementById('search_box').value='';update_view();false">(clear)</a>
+	<a href="#" id="add_tracks">Add Selected Tracks</a>
+	<label for="search_box">search</label><input id="search_box" type="text" />
+	<a href="#" id="clear_search">(clear)</a>
 	<div id="status">
 		<h2>status</h2>
 		<ul id="status_list"></ul>
