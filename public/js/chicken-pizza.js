@@ -42,7 +42,7 @@
 //onclick="document.getElementById('search_box').value='';update_view();false"
 
 var utils = {
-	ajax: function(url,method,postdata,f) {
+/*	ajax: function(url,method,postdata,f) {
 		var xhr = new XMLHttpRequest();
 		xhr.onreadystatechange=function(){
 			if (xhr.readyState==4 && xhr.status==200){
@@ -51,7 +51,7 @@ var utils = {
 		}
 		xhr.open(method,url,true);
 		xhr.send(postdata);
-	},
+	},*/
 	tag_to_id: function(tag) {
 		return tag.toLowerCase()+"_selector";
 	},
@@ -157,67 +157,6 @@ var chicken_pizza = function() {
 			e.options[i].selected=null;
 		update_view();
 	};
-	
-	var update_status = function(){
-		utils.ajax("/status","GET",null,function(data){
-			var ul=document.getElementById("status_list")
-			ul.innerHTML=""
-			for (var i in data){
-				var li=document.createElement("li")
-				li.textContent=i+": "+data[i]
-				ul.appendChild(li)
-			}
-			if (THE_STATUS.queue_version!=data.queue_version || THE_STATUS.song!=data.song ||THE_STATUS.songid!=data.songid){
-				update_queue(data.song);
-			}
-			document.getElementById("vol").value=data.volume;
-
-			//now that comparisons are done, use this
-			THE_STATUS=data;
-		});
-	};
-	
-	function update_queue(song_i){
-		utils.ajax("/queue/list","GET",null,function(data){
-			var ul = document.getElementById("queue_list");
-			ul.innerHTML="";
-			for (var i=0; i<data.length; i++){
-				var track=data[i];
-
-				var li= document.createElement("li");
-				var minus = document.createElement("a");
-				minus.onclick=function(){return simple_control("/queue/delete/"+this.parentElement.i,"delete");}
-				li.ondblclick=function(){return simple_control("/playback/play?pos="+this.i,"put");}
-				ul.appendChild(li);
-				li.appendChild(minus);
-				minus.appendChild(document.createTextNode("(-)"));
-				minus.setAttribute("href","#");
-				var playNext=document.createElement("a");
-
-				playNext.onclick=function(){
-					var cur = parseInt(THE_STATUS.song);
-					var target = (this.parentElement.i <=cur) ? cur : cur+1;
-					return simple_control("/queue/move/"+this.parentElement.track_id+"?pos="+target,"put");}
-				li.appendChild(playNext);
-				playNext.appendChild(document.createTextNode("(play next)"));
-				playNext.setAttribute("href","#");
-				li.appendChild(document.createTextNode("  ["+(track["Requester"]||"Unknown Requester")+"]: "+(track["Artist"]||"(Unknown Artist)")+" - "+(track["Title"]||"(Unknown Title, file="+track["file"]+")")));
-				li.i=i
-				li.track_id=track["Id"]
-				if (i<song_i)
-					li.className="already_played"
-				if (i==song_i)
-					li.className="current_song"
-
-			}
-
-		});
-	};
-	
-	var simple_control = function(url,method){
-		utils.ajax(url,method,null,function(d){update_status();});
-		return false;
-	};
 
 	var add_tracks = function (){
 		var e=document.getElementById("tracks_selector")
@@ -246,8 +185,8 @@ var chicken_pizza = function() {
 	
 	return {
 		
-		next: function(){simple_control('/playback/next','post');},
-		previous: function(){simple_control('/playback/previous','post');},
+		//next: function(){simple_control('/playback/next','post');},
+		//previous: function(){simple_control('/playback/previous','post');},
 		init: function(){
 			var arr=document.getElementsByClassName("filter_selector");
 			for (var i in arr){

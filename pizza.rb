@@ -1,6 +1,6 @@
 #require 'mpd_driver.rb'
 require './mpd_driver.rb'
-$mpd=MPD.new("chicken.local")
+$mpd=MPD.new("codeforamerica.dyndns.org")
 $remote_hosts={}
 $playlist_hosts={}
 
