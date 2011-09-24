@@ -6,9 +6,26 @@
 $(document).ready(function(){
   setupWindowResizing();
   setupLibraryCollapse();  
-  songCanvas.init();
-  browser.init();
-  playa.init();
+
+  var player = Object.create(playa);
+  player.init('#controls').poll();
+
+  var songList = Object.create(songCanvas);
+  songList.init('#songCanvas');
+
+  var chicken = Object.create(browser);
+  chicken.init('#browser')
+         .filter('#genres', 'Genre')
+         .filter('#albums', 'Album')
+         .filter('#artists', 'Artist');
+
+  $(chicken).bind('songListChange', function(e, songUrl) {
+    songList.getSongs(songUrl);
+  });
+
+  // have to wait to fire this until all the glue is wired up
+  chicken.load();
+
 });
 
 /* ---------- Window Setup --------------- */

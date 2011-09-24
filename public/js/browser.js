@@ -1,80 +1,52 @@
 /* ------------- 3 Column Browser for Genres, Artists, and Albums ------------ */
-
-var browser = function() {
-  var tags = ['Genre','Artist','Album'];
-  var el = $('#browser');
-
-  // need to get all the selected filters
-
-  var filter = function() {
+var browser = {
+  el: '',
+  url: '/search_and_filter?filters[Genre]&filters[Artist]&filters[Album]&query=',
+  filters: [],
+  events: [],
+  filter: function(el, title) {
+    var newFilter = Object.create(filter);
+    newFilter.init(el, title);
+    this.filters.push(newFilter);
+    console.log(newFilter.query());
+    return this;
+  },
+  load: function() {
+    var self = this;
     $.ajax({
       type: 'GET',
       dataType: 'json',
-      url: '/search_and_filter?filters[Genre]&filters[Artist]&filters[Album]&query=',
+      url: self.url,
       success: function(data) {
-        populateGenres(data.Genre);
-        populateArtists(data.Artist);
-        populateAlbums(data.Album);
-        // set list defaults
-        $('#genres ul li:first').addClass('selected');
-        $('#artists ul li:first').addClass('selected');
-        $('#albums ul li:first').addClass('selected');
+        //TODO: this needs to be smarter, keys should auto match to filters
+        self.filters[0].populate(data.Genre);
+        self.filters[1].populate(data.Album);
+        self.filters[2].populate(data.Artist);
       }
     });
-  };
 
-  var populateGenres = function(genres) {
-    var html = '';
-    genres = _.uniq(genres);
-    html += '<li>All (' + genres.length + ' Genres)';
-    for (var k=0; k < genres.length; k++) {
-      html += '<li>' + genres[k] + '</li>'
-    };
-    $('#genres ul').html(html);
-  };
+    $(this).trigger('songListChange', '/all_tracks');
+    return this;
+  },
+  init: function(el) {
+    var self = this;
+    self.el = el;
 
-  var populateArtists = function(artists) {
-    var html = '';
-    artists = _.uniq(artists);
-    html += '<li>All (' + artists.length + ' Artists)';
-    for (var k=0; k < artists.length; k++) {
-      html += '<li>' + artists[k] + '</li>'
-    };
-    $('#artists ul').html(html);
-  };
-
-  var populateAlbums = function(albums) {
-    var html = '';
-    albums = _.uniq(albums);
-    html += '<li>All (' + albums.length + ' Albums)';
-    for (var k=0; k < albums.length; k++) {
-      html += '<li>' + albums[k] + '</li>'
-    };
-    $('#albums ul').html(html);
-  };
-
-  var populateSongs = function() {
-    $.ajax({
-      type: 'GET',
-      dataType: 'json',
-      url: '/all_tracks',
-      success: function(data) {
-        el.trigger('songListChange', [data]);
-      }
-    });
-  };
-
-  var initUI = function() {
     $('#library li').click(function(e){
       e.preventDefault();
-    });
-  };
 
-  return {
-    init:function(){
-      initUI();
-      filter();
-      populateSongs();
-    }
+      var $el = $(self.el);
+      var $tar = $(e.target);
+
+      if ($tar.text() === 'Current Queue') {
+        $el.hide();
+        $(self).trigger('songListChange', '/queue/list');
+      } else {
+        $el.show();
+        $(self).trigger('songListChange', '/all_tracks');
+      }
+    });
+
+    return self;
   }
-}();
+};

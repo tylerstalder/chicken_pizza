@@ -7,116 +7,138 @@
 * volumeChange
 */
 
-var playa = function() {
-	var playing = true
-  , queue
-  , status
-  , el = $('#controls')
-  , volume;
-	
-	var play = function() {
-		$.ajax({
-	    type: 'PUT',
+var playa = {
+  el: '', //#controls
+  playEl: '#playPause', //#playPause
+  scrubberEl: '#scrubber', //#scrubber
+  playing: true,
+  queue: [],
+  status: '',
+  volume: 0,
+
+  play: function() {
+    var self = this;
+    $.ajax({
+      type: 'PUT',
 	    dataType: 'json',
 	    url: '/playback/play',
 	    success: function(data) {
-        $("#playPause").toggleClass('paused');
-        playing = true;
-        el.trigger('playChange', [{playing:playing}]);
-        update();
+        $(self.playEl).toggleClass('paused');
+        self.playing = true;
+        $(self).trigger('playChange', [{playing:self.playing}]);
+        self.update();
 	    }
 	  });
-	};
-	
-	var pause = function() {
+
+    return self;
+  },
+
+  pause: function() {
+    var self = this;
 		$.ajax({
 	    type: 'PUT',
 	    dataType: 'json',
 	    url: '/playback/pause',
 	    success: function(data) {
-        $("#playPause").toggleClass('paused');
-        playing = false;
-        el.trigger('playChange', [{playing:playing}]);
-        update();
+        $(self.playEl).toggleClass('paused');
+        self.playing = false;
+        $(self).trigger('playChange', [{playing:self.playing}]);
+        self.update();
 	    }
 	  });
-	};
-	
-	var next = function() {
+
+    return self;
+  },
+
+  next: function() {
+    var self = this;
 		$.ajax({
 	    type: 'POST',
 	    dataType: 'json',
 	    url: '/playback/next',
 	    success: function(data) {
-			  // success callback
-        el.trigger('songChange');
-        update();
+        $(self).trigger('songChange');
+        self.update();
 	    }
 	  });
-	};
-	
-	var previous = function() {
+
+    return self;
+  },
+
+  previous: function() {
+    var self = this;
 		$.ajax({
 	    type: 'POST',
 	    dataType: 'json',
 	    url: '/playback/previous',
 	    success: function(data) {
-			  // success callback
-        el.trigger('songChange');
-        update();
+        $(self).trigger('songChange');
+        self.update();
 	    }
 	  });
-	};
-	
-	var setVol = function(value) {
+
+    return self;
+  },
+
+  setVol: function(value) {
+    var self = this;
 		var url = '/playback/setvol?vol=' + value;
 		$.ajax({
 	    type: 'PUT',
 	    dataType: 'json',
 	    url: url,
 	    success: function(data) {
-			// success callback
-        el.trigger('volumeChange');
-        update();
+        $(self).trigger('volumeChange');
+        self.update();
 	    }
 	  });
-	};
 
-  var setCurrentSong = function(songId) {
+    return self;
+  },
+
+  setCurrentSong: function(songId) {
+    var queue = this.queue;
     for (var i = 0; i < queue.length; i++) {
       if (queue[i].Id === songId) {
         var title = queue[i].Title;
         var artist = queue[i].Artist;
-        $('#scrubber').html('<h3>' + title + '</h3><h4>' + artist + '</h4>');
+        $(this.scrubberEl).html('<h3>' + title + '</h3><h4>' + artist + '</h4>');
       }
     }
-  };
 
-	
-	// attach all of the UI controls
-	var initUI = function() {
-	  $('#playPause').click(function(){
-	    if (playa.playing) {
-	      playa.pause();
-	      $(this).toggleClass('paused');
+    return this;
+  },
+
+  init: function(el) {
+    var self = this;
+    self.el = el;
+
+	  $(self.playEl).click(function(){
+	    if (self.playing) {
+	      self.pause();
+	      $(self.playEl).toggleClass('paused');
 	    } else {
-	      playa.play();
-	      $(this).toggleClass('paused');
+	      self.play();
+	      $(self.playEl).toggleClass('paused');
 	    }
 	  });
 
 	  $('#nextSong').click(function(e){
 	    e.preventDefault();
-	    $('#playing').next('A').dblclick().end().attr('id', '');
-	    $('#playPause').toggleClass('paused');
-      next();
+      //TODO: This needs hooked to the new queue
+	    //$('#playing').next('A').dblclick().end().attr('id', '');
+      //TODO: Check play state when clicking next
+	    //$('#playPause').toggleClass('paused');
+      self.next();
 	  });
 
 	  $('#prevSong').click(function(e){
 	    e.preventDefault();
-	    $('#playing').prev('A').dblclick().end().attr('id', '');
-	    $('#playPause').toggleClass('paused');
-      previous();
+      //TODO: This needs hooked to the new queue
+	    //$('#playing').prev('A').dblclick().end().attr('id', '');
+      //TODO: Check play state when clicking next
+	    //$('#playPause').toggleClass('paused');
+      self.previous();
 	  });
 
     $('#volume').slider({
@@ -125,41 +147,58 @@ var playa = function() {
       value: 65,
       animate: true,
       slide: function(event, ui) {
-        playa.setVol(ui.value);
+        self.setVol(ui.value);
       }
     });
-  };
 
-  var statusWatcher = function(){
-    update();
-    setInterval(update,10*1000);
-  };
+    /* Hotkeys */
+    $('body').keypress(function(e){
+      if (e.keyCode == '32') {
+        $('#playPause').click();
+      }
+    });
 
-  var update = function() {
+    return self;
+  },
+
+  poll: function() {
+    var self = this;
+    self.update();
+
+    var bindPoll = _.bind(self.poll, self);
+    _.delay(bindPoll, 10*1000);
+
+    return self;
+  },
+
+  update: function() {
+    console.log('starting the play loop');
+    var self = this;
     $.ajax({
       type: 'GET',
       dataType: 'json',
       url: '/queue/list',
       success: function(queueData) {
-        queue = queueData;
+        self.queue = queueData;
         $.ajax({
           type: 'GET',
           dataType: 'json',
           url: '/status',
           success: function(statusData) {
             // success callback
-            status = statusData;
+            self.status = statusData;
             if(statusData.state == 'play') {
-              console.log(statusData.volume);
               console.log('status playing');
-              setCurrentSong(statusData.songid);
-              $('#volume').slider.value(statusData.volume);
+              console.log('second inner status');
+              self.setCurrentSong(statusData.songid);
+              $('#volume').slider('value',statusData.volume);
             }
           }
         });
       }
     });
-  };
+  }
+};
 
 /* blocking this out for now, new queue will work differently
   var li= document.createElement("li");
@@ -196,20 +235,3 @@ var playa = function() {
 	};
 
 */
-	
-	return {
-		play:play,
-		pause:pause,
-		next:next,
-		previous:previous,
-		setVol:setVol,
-		playing: playing,
-    setSong: function(song){
-      setCurrentSong(song);
-    },
-		init:function(){
-			initUI();
-      statusWatcher();
-		}
-	}
-}();
